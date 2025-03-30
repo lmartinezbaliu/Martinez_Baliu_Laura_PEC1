@@ -1,0 +1,135 @@
+---
+title: "Martinez_Baliu_Laura_PEC1"
+output:
+  pdf_document: default
+  html_document: default
+date: "2025-03-24"
+---
+
+Para llevar a cabo este informe primeramente hemos seleccionado y descargado el dataset 2024 Cachexia. Se ha seleccionado este dataset porque es del año pasado, tenia solo una base de datos y lo he visto interesante al tratarse de cachexia, un sindrome asociado a la perdida de masa muscular, debido a enfermedades graves y cronicas.
+
+Realización SummarizedExperiment para obtener información del dataset, sus filas y las columnas.
+
+```{r}
+setwd("C:/Users/arual/OneDrive/Escritorio/MASTER/Analisis dades Omiques/metaboData-main")
+
+library(readr)
+human_cachexia <- read_csv("metaboData-main/Datasets/2024-Cachexia/human_cachexia.csv")
+row_metadata <- human_cachexia[, 1, drop = FALSE]  # Extraemos la 
+#primera columna (Patient ID)
+expr_matrix <- as.matrix(human_cachexia[, -1])  # Extraemos todas las columnas excepto 
+#la primera (Patient ID)
+library(SummarizedExperiment)
+# Convertir el dataframe con solo la primera columna en un objeto dataframe y asi almacenar 
+#los metadatos de las filas
+row_metadata_df <- as(row_metadata, "DataFrame")
+# Crear el objeto SummarizedExperimentle decimos que los datos de expr_matrix
+#(todas las columnas restante)lo convierta en una lista de matrices y a
+#continuación añadiremos los metadatos al objeto y lo guardamos en rowData.  
+se <- SummarizedExperiment(
+  assays = list(counts = expr_matrix),  
+  rowData = row_metadata_df)
+se
+```
+
+Hemos obtenido 77 filas y 64 columnas con solo una columna de metadatos, el Patient ID y una matriz de expresion con 64 columnas.
+
+Tanto el ExpressionSet como SumarizedExperiment son clases muy utilizadas en R para almacenar como gestionar expresiones. Una de las diferencias es en el paquete utilizado, el ExpresionSet viene del paquete Biobase en cambio el SumarizedExperiment proviene del paquete Bioconductor. Otra cosa de la cual se diferencia es de la estructura y componentes, en el caso de SumarizedExperiment almacena la información en la expresión assays, la información asociada a las filas en rowData y la de las columnas/metadatos en colData. En cambio en ExpresionSet se almacena en exprs, los metadatos de las muestras en phenoData y los metadatos de los genes en featureData. Continuando con las diferencias otra importante son los datos compatibles siendo el ExpresionSet compatible con microarrays, en cambio el SumarizedExperiment es compatible con microarrays, RNA-Seq, y otros datos omicos.
+
+Ahora realizaremos un analisis exploratorio (EDA), donde observaremos graficas y correlaciones de las diferentes columnas de aminoacidos, acidos organicos, azucares derivados, vitaminas.
+
+```{r}
+library(ggplot2)
+mean(head(human_cachexia$Glucose, 47))#media de glucosa del muscle loss cachexic
+mean(human_cachexia$Glucose [47:77])#media de glucosa del muscle loss control 
+
+```
+
+Al realizar la media de la glucosa se observa como los valores de cachexic son superiores al de control.
+
+```{r}
+colnames(human_cachexia)[colnames(human_cachexia) == "Muscle loss"] <- "muscle_loss"
+library(ggplot2)
+ggplot(human_cachexia, aes(x = `muscle_loss`, y = Creatine)) +
+  geom_point(color = "blue") +
+  labs(title = "Muscle Loss vs Creatine",
+       x = "Muscle Loss", y = "Creatine") + theme_minimal()
+```
+
+Hemos creado un gráfico de puntos donde se puede observar la creatine vs muscle loss. Vemos que en ambos casos, se observa como en el grupo cachexic los puntos estan mas dispersos, con valores anormales de creatina, así que se concluye que la creatina es superior en pacientes que sufren cachexic.
+
+Seguidamente realizaremos una gráfica para valorar la creatina vs creatinine, ya que ambos son productos de la misma via metabólica y constan con la salud muscular.
+
+La creatina es un compuesto que se encuentra principalmente en los músculos y ayuda a proporcionar energía durante actividades. Y la creatinina es el producto de desecho de la descomposición de la creatina en el cuerpo. Cuando la creatina se descompone en los músculos, una pequeña parte de ella se convierte en creatinina, que luego se libera al torrente sanguíneo y se excreta a través de los riñones en la orina.
+
+```{r}
+ggplot(human_cachexia, aes(x = Creatine, y = Creatinine)) +
+  geom_point(color = "red") +
+  labs(title = "Creatine vs Creatinine",
+       x = "Creatine", y = "Creatinine") + theme_minimal()
+```
+
+Se observa como la gran mayoria de los puntos estan centrados cerca del eje Y, lo que nos dice que los valores de creatina son bajos mientras que la creatinina es mas variable. Hay algunos valores atipicos superiores a 1000 de creatina que indican outliers. Tambien viendo la grafica se podria saber que la correlación entre ambas seria baja.
+
+A continuación realizaremos un histograma de la glucosa para identificar la distribución.
+
+```{r}
+ggplot(human_cachexia, aes(x = Glucose)) +
+  geom_histogram(binwidth = 10, fill = "lightblue", color = "red", alpha = 0.7) +
+  labs(title = "Distribución de glucosa", x = "Nivel de glucosa", y = "Frecuencia") + theme_minimal()
+```
+
+```{r}
+ggplot(human_cachexia, aes(x = Glucose, y = Lactate)) +
+  geom_point(color = "red") +
+  labs(title = "Glucosa vs lactato", x = "Glucosa", y = "Lactato") +
+  theme_minimal()
+```
+
+Vemos como la gran mayoría de los datos se centran en la esquina de la gráfica y tenemos muy pocos valores dispersos, eso podría significar que hay cierta correlación. Mas adelante veremos que los datos estan centrados en un mismo punto debido a la correlación moderada que tienen ambos parámetros.
+
+```{r}
+ggplot(human_cachexia, aes(x = muscle_loss, y = Glucose, fill = muscle_loss)) +
+  geom_boxplot() +
+  labs(title = "Glucosa vs perdida muscular", x = "muscle loss", y = "Nivel de Glucosa") +
+  coord_cartesian(ylim = c(0, 1000)) + theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral"))
+```
+
+Se ha realizado una gráfica de cajas, donde de color rojo se observa el grupo control vs glucosa y de color azul el grupo cachexic. Destaca la media que hemos visto anteiormente donde el grupo control es inferior al cachetic, dadoque los niveles de glucosa en control son inferiores, igual que los bigotes.
+
+Por lo tanto la conclusion es que en pacientes que sufren de cachexic su glucosa es mas elevada que en los pacientes que no lo sufren.
+
+Ahora realizaremos la matriz de correlación para ver si las variables que hemos estado viendo tienen una relacion entre si.
+
+```{r}
+conjunto <- human_cachexia[, c("Glucose", "Lactate", "Creatine", "Creatinine")]
+cor_matrix <- cor(conjunto, use = "complete.obs")
+print(cor_matrix)
+```
+
+Podemos observar como en todas la correlación es positiva. Donde existe mayor correlación y eso significa una relación es entre glucosa vs lactate, a medida que la glucosa aumenta es probable que el lactate tambien aumente. Y ninguno mas tiene una correlaciónmoderada, son correlaciones bajas sin relación.
+
+De nuevo realizaremos matriz de correlación entre los aminoacidos.
+
+```{r}
+conjunto_aminoacidos <- human_cachexia[, c("Alanine", "Glutamine", "Glycine", "Isoleucine", 
+"Leucine", "Lysine", "Serine", "Threonine", "Valine")]
+cor_matrix <- cor(conjunto_aminoacidos, use = "complete.obs")
+print(cor_matrix)
+```
+
+Al realizar la correlación observamos que todas las variables tienen un correlación positiva, y siendo bastante alta la correlación entre muchos de ellos.
+
+```{r}
+human_cachexia_largo <- reshape2::melt(human_cachexia[, c("Alanine", "Glutamine", "Glycine", 
+"Isoleucine", "Leucine", "Lysine", "Serine", "Threonine", "Valine")], 
+variable.name = "Aminoacido", value.name = "Level") #hemos hecho una tabla con dos columnas 
+#una que son los aminoacidos y otra que hemos denominado level que son los valores
+ggplot(human_cachexia_largo, aes(x = Aminoacido, y = Level)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de los aminoácidos", x = "Aminoácido", y = "Nivel") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + coord_cartesian(ylim = c(0, 1500))
+```
+
+En esta grafica de cajas se puede visualizar como los aminoacidos Isoleucine, Leucine y Valine son los que sus datos son mas bajo en comparación con los demas. El aminoacido mayor a los demas con diferencia es la glycine donde el valor maximo esta encima de los 1000 y su bigote superior supera los 1500. Se concluye que la glycine es el aminoacido que mas prevaencia tiene, seguido de la glutamina y la alanina.
