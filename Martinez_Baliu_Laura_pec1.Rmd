@@ -133,3 +133,5 @@ ggplot(human_cachexia_largo, aes(x = Aminoacido, y = Level)) +
 ```
 
 En esta grafica de cajas se puede visualizar como los aminoacidos Isoleucine, Leucine y Valine son los que sus datos son mas bajo en comparación con los demas. El aminoacido mayor a los demas con diferencia es la glycine donde el valor maximo esta encima de los 1000 y su bigote superior supera los 1500. Se concluye que la glycine es el aminoacido que mas prevaencia tiene, seguido de la glutamina y la alanina.
+
+Repositorio github: https://github.com/lmartinezbaliu/Martinez_Baliu_Laura_PEC1.git 
